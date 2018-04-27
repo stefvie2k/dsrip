@@ -422,7 +422,9 @@ class DSRHTTPRequestHandler(BaseHTTPRequestHandler):
 
                 select_service(session, sid)
 
-                r = requests.get('http://tvheadend:4022/udp/239.1.1.1:6100', stream=True)
+                stream_url = instance.get('StreamUrl')
+                print stream_url
+                r = requests.get(stream_url, stream=True)
                 for chunk in r.iter_content(chunk_size=512 * 1024):
                     if chunk: # filter out keep-alive new chunks
                         self.wfile.write(chunk)
