@@ -7,6 +7,10 @@ import SocketServer
 import urlparse
 import netsnmp
 import requests
+import ipaddress
+import socket
+import struct
+import sys
 import time
 import os
 
@@ -14,7 +18,7 @@ netsnmp.verbose = 1
 
 config = configparser.ConfigParser()
 
-def tune_dcii(session, port, freq, sr, fec, split):
+def tune_dcii(session, port, tone, freq, sr, fec, split):
     freq_plan = 1 # default to l-freq
 
     if freq > 0 and freq < 25:
@@ -100,6 +104,7 @@ def tune_dcii(session, port, freq, sr, fec, split):
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.9.0', 0, 'INTEGER'),                # Mode
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.7.0', split, 'INTEGER'),            # Format: 0=Split, 1=Combined
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.8.0', fmt, 'INTEGER'),              # SR+FEC
+            netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.10.2.6.0', tone, 'INTEGER'),            # Relay1 (22kHz)
             )
 
     print 'Configuring port, freq_plan, mode, format and sr+fec...'
@@ -113,7 +118,7 @@ def tune_dcii(session, port, freq, sr, fec, split):
                 )
     else:
         vars = netsnmp.VarList(
-                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(5150 - freq), 'INTEGER'),     # l-freq
+                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(freq), 'INTEGER'),     # l-freq
                 )
 
     print 'Configuring xpndr/l-freq...'
@@ -123,7 +128,7 @@ def tune_dcii(session, port, freq, sr, fec, split):
 
     return
 
-def tune_dvbs(session, port, freq, sr, fec):
+def tune_dvbs(session, port, tone, freq, sr, fec):
     freq_plan = 1 # default to l-freq
 
     if fec == 12:
@@ -148,6 +153,7 @@ def tune_dvbs(session, port, freq, sr, fec):
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.9.0', 1, 'INTEGER'),                # Mode
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.5.0', int(sr) * 1000, 'INTEGER'),   # SR
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.6.0', fec, 'INTEGER'),              # FEC
+            netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.10.2.6.0', tone, 'INTEGER'),            # Relay1 (22kHz)
             )
 
     print 'Configuring port, freq_plan, mode, sr and fec...'
@@ -161,7 +167,7 @@ def tune_dvbs(session, port, freq, sr, fec):
                 )
     else:
         vars = netsnmp.VarList(
-                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(5150 - freq), 'INTEGER'),     # l-freq
+                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(freq), 'INTEGER'),     # l-freq
                 )
 
     print 'Configuring xpndr/l-freq...'
@@ -171,7 +177,7 @@ def tune_dvbs(session, port, freq, sr, fec):
 
     return
 
-def tune_turbo(session, port, freq, sr, fec):
+def tune_turbo(session, port, tone, freq, sr, fec):
     freq_plan = 1 # default to l-freq
 
 
@@ -199,6 +205,7 @@ def tune_turbo(session, port, freq, sr, fec):
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.9.0', 2, 'INTEGER'),                    # Mode
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.12.0', int(sr) * 1000, 'INTEGER'),      # SR
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.11.0', fec, 'INTEGER'),                 # FEC
+            netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.10.2.6.0', tone, 'INTEGER'),            # Relay1 (22kHz)
             )
     for var in vars:
         print var.tag, var.iid, "=", var.val, '(',var.type,')'
@@ -210,7 +217,7 @@ def tune_turbo(session, port, freq, sr, fec):
                 )
     else:
         vars = netsnmp.VarList(
-                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(5150 - freq), 'INTEGER'),     # l-freq
+                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(freq), 'INTEGER'),     # l-freq
                 )
 
     print 'Configuring xpndr/l-freq...'
@@ -220,7 +227,7 @@ def tune_turbo(session, port, freq, sr, fec):
 
     return
 
-def tune_dvbs2(session, port, freq, sr, fec):
+def tune_dvbs2(session, port, tone, freq, sr, fec):
     freq_plan = 1 # default to l-freq
 
     if fec == 35:
@@ -247,6 +254,7 @@ def tune_dvbs2(session, port, freq, sr, fec):
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.9.0', 4, 'INTEGER'),                # Mode
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.12.0', int(sr) * 1000, 'INTEGER'),  # SR
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.13.0', fec, 'INTEGER'),             # FEC
+            netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.10.2.6.0', tone, 'INTEGER'),            # Relay1 (22kHz)
             )
 
     print 'Configuring port, freq_plan, mode, sr and fec...'
@@ -260,7 +268,7 @@ def tune_dvbs2(session, port, freq, sr, fec):
                 )
     else:
         vars = netsnmp.VarList(
-                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(5150 - freq), 'INTEGER'),     # l-freq
+                netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.4.0', int(freq), 'INTEGER'),     # l-freq
                 )
 
     print 'Configuring xpndr/l-freq...'
@@ -286,6 +294,11 @@ def tune(instance, session, qs):
     else:
         raise ('missing pol or port parameter')
 
+    if 'tone' in qs:
+        tone = int(qs['tone'][0])
+    else:
+        tone = 0
+
     # Frequency
     if 'freq' in qs:
         freq = float(qs['freq'][0])
@@ -310,20 +323,30 @@ def tune(instance, session, qs):
     else:
         raise ('missing fec parameter')
 
+    # Convert frequncy to l-band
+    if int(freq) > 3000:
+        key = "Source" + str(src) + "_LOF"
+        lof = int(instance[key])
+        if int(freq) > lof:
+            freq = str(int(freq) - int(lof))
+        else:
+            freq = str(int(lof) - int(freq))
+        print 'Calculated frequency is ' + freq
+
     if modulation == 'dcii-auto':
-        tune_dcii_auto(session, port, freq)
+        tune_dcii_auto(session, port, tone, freq)
     elif modulation == 'dcii':
         if 'split' in qs:
             split = int(qs['split'][0])
         else:
             split = 0
-        tune_dcii(session, port, freq, sr, fec, split)
+        tune_dcii(session, port, tone, freq, sr, fec, split)
     elif modulation == 'dvbs':
-        tune_dvbs(session, port, freq, sr, fec)
+        tune_dvbs(session, port, tone, freq, sr, fec)
     elif modulation == 'turbo':
-        tune_turbo(session, port, freq, sr, fec)
+        tune_turbo(session, port, tone, freq, sr, fec)
     elif modulation == 'dvbs2':
-        tune_dvbs2(session, port, freq, sr, fec)
+        tune_dvbs2(session, port, tone, freq, sr, fec)
     else:
         raise ('invalid modulation type')
 
@@ -533,13 +556,51 @@ class DSRHTTPRequestHandler(BaseHTTPRequestHandler):
                     vcn = int(qs['vcn'][0])
                     select_channel(session, vct, vcn)
 
-                # start streaming
-                stream_url = instance.get('StreamUrl')
-                print stream_url
-                r = requests.get(stream_url, stream=True)
-                for chunk in r.iter_content(chunk_size=512 * 1024):
-                    if chunk: # filter out keep-alive new chunks
-                        self.wfile.write(chunk)
+                # Parse stream url
+                stream_url = urlparse.urlparse(instance.get('StreamUrl'))
+
+                try:
+
+                    if stream_url.scheme == 'http':
+                        r = requests.get(stream_url, stream=True)
+                        for chunk in r.iter_content(chunk_size=512 * 1024):
+                            if chunk: # filter out keep-alive new chunks
+                                self.wfile.write(chunk)
+                    elif stream_url.scheme == 'udp':
+                        SOCKET_BUFSIZE = 188 * 7 * 512
+
+                        # Create the socket
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        #sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, SOCKET_BUFSIZE)
+
+                        source_address, data_address, data_port = stream_url.netloc.replace('@', ':').split(':')
+
+                        if data_address != '' and ipaddress.ip_address(data_address).is_multicast:
+                            print "Joinging multicast group..."
+    
+                            # Tell the operating system to add the socket to the multicast group
+                            # on all interfaces.
+                            group = socket.inet_aton(data_address)
+                            mreq = struct.pack('4sL', group, socket.INADDR_ANY)
+                            sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                        else:
+                            source_address = '0.0.0.0'
+
+                        # Bind to the server address
+                        print "Binding to '" + source_address + "' port " + data_port
+                        sock.bind((source_address, int(data_port)))
+
+                        print "Starting forwarding loop..."
+                        while True:
+                            data = sock.recv(SOCKET_BUFSIZE)
+                            self.wfile.write(data)
+                        sock.close()
+
+                except IOError:
+                    print "Disconnecting client."
+                    return
+
 
             elif funct == "/tune":
 
@@ -580,7 +641,8 @@ class DSRHTTPRequestHandler(BaseHTTPRequestHandler):
 
             return
 
-        except IOError:
+        except IOError, e:
+            print str(e)
             self.send_error(404, 'file not found')
 
 class MyServer(SocketServer.ThreadingMixIn,HTTPServer):
@@ -590,11 +652,11 @@ def run():
     print('reading config file...')
     config.read('dsrip.ini')
 
-    print('http server is starting...')
-    server_address = (
-            config["server"].get("ListeningAddress", ''),
-            config["server"].getint("ListeningPort", 80)
-            )
+    address = config["server"].get("ListeningAddress", '')
+    port = config["server"].getint("ListeningPort", 80)
+
+    print 'http server is starting on ',address,':',port
+    server_address = (address, port)
     httpd = MyServer(server_address, DSRHTTPRequestHandler)
     print('http server is running...')
     httpd.serve_forever()
