@@ -58,18 +58,20 @@ Source1_VPort = 7
 
 ### Testing
 
-Status url:
+Status:
+```
+  http://<ip>:<port>/status/?<parameters>
+```
 
-  http://<ip>:<port>/status/<instance>
+Tuning:
+```
+  http://<ip>:<port>/tune/?<parameters>
+```
 
-Tuning url:
-
-  http://<ip>:<port>/tune/<instance>?<parameters>
-
-Streaming url:
-
-  http://<ip>:<port>/stream/<instance>?<parameters>
-
+Streaming:
+```
+  http://<ip>:<port>/stream/?<parameters>
+```
 
 The following is a list of tuning/streaming parameters:
 
