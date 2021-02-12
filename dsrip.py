@@ -202,7 +202,7 @@ def tune_turbo(session, port, tone, freq, sr, fec):
     vars = netsnmp.VarList(
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.1.0', port, 'INTEGER'),                 # Port
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.2.0', freq_plan, 'INTEGER'),            # Frequency plan
-            netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.9.0', 2, 'INTEGER'),                    # Mode
+            netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.9.0', 3, 'INTEGER'),                    # Mode
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.12.0', int(sr) * 1000, 'INTEGER'),      # SR
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.2.2.11.0', fec, 'INTEGER'),                 # FEC
             netsnmp.Varbind('iso', '3.6.1.4.1.1166.1.621.10.2.6.0', tone, 'INTEGER'),            # Relay1 (22kHz)
