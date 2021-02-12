@@ -180,7 +180,7 @@ def tune_dvbs(session, port, tone, freq, sr, fec):
 def tune_turbo(session, port, tone, freq, sr, fec):
     freq_plan = 1 # default to l-freq
 
-
+    # 8SPK Turbo FEC Rates: 2/3 (1.92), 3/4 (2.05), 3/4 (2.11), 3/4 (2.19),. 5/6 (2.30), 8/9 (2.40).
     if fec == 1.92:
         fec = 0
     elif fec == 2.05:
@@ -319,7 +319,7 @@ def tune(instance, session, qs):
 
     # Forward error correction
     if 'fec' in qs:
-        fec = int(qs['fec'][0])
+        fec = qs['fec'][0]
     else:
         raise ('missing fec parameter')
 
@@ -340,13 +340,13 @@ def tune(instance, session, qs):
             split = int(qs['split'][0])
         else:
             split = 0
-        tune_dcii(session, port, tone, freq, sr, fec, split)
+        tune_dcii(session, port, tone, freq, sr, int(fec), split)
     elif modulation == 'dvbs':
-        tune_dvbs(session, port, tone, freq, sr, fec)
+        tune_dvbs(session, port, tone, freq, sr, int(fec))
     elif modulation == 'turbo':
-        tune_turbo(session, port, tone, freq, sr, fec)
+        tune_turbo(session, port, tone, freq, sr, float(fec))
     elif modulation == 'dvbs2':
-        tune_dvbs2(session, port, tone, freq, sr, fec)
+        tune_dvbs2(session, port, tone, freq, sr, int(fec))
     else:
         raise ('invalid modulation type')
 
